@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+<script src="http://mapopen.bj.bcebos.com/github/BMapGLLib/TrackAnimation/src/TrackAnimation.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript"
+src="http://bj.bcebos.com/v1/mapopen/api-demos/data/province.js"></script>
+<script type="text/javascript"
+src="http://api.map.baidu.com/api?type=webgl&v=1.0&ak=xGJ1s1rd5n1DYEFrYpj4KCfL30oVzCZG"></script>
+<style type="text/css">
+body,html{width: 100% ;height: 100% ;overflow:
+hidden;margin:0;}
+p {  
+    text-align: center;  font-size: 30px;color: #ffffff;font-family:"微软雅黑" ;
+}
+.all {
+    width: 100%;
+    /* width: 100%; */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #allmap{
+    width: 100% ;height: 100% ;overflow:
+    hidden;
+  }
+  .top {
+    width: 100%;
+    height: 100px;
+    background-color: #b31a1acb;
+  }
+ 
+  .center {
+    width: 100%;
+    flex: 1;
+    background-color: #1c84c6;
+  }
+ 
+  .bottom{
+    width: 100%;
+    height: 100px;
+    background-color: #b31a1acb;
+
+    display: flex;  
+    flex-direction: column;  
+    justify-content: center;  
+    align-items: flex-start; /* 或者使用 center 来水平居中元素 */  
+    padding: 10px; /* 添加一些内边距以使内容不会紧贴边缘 */  
+  }
+  #result{
+position: fixed;
+top: 10px;
+left: 10px;
+width: 250px;
+height: 30px;
+line-height: 30px;
+text-align: center;
+background: #fff;
+box-shadow: 0 2px 6px 0 rgba(27, 142, 236, 0.5);
+border-radius: 7px;
+z-index: 99;
+}
+.info {
+z-index: 999;
+width: auto;
+padding: 10px;
+margin-left: 10px;
+/* position: fixed; */
+top: 10px;
+background-color: #fff;
+border-radius: 5px;
+font-size: 14px;
+color: #666;
+box-shadow: 0 2px 6px 0 rgba(27, 142, 236, 0.5);
+}
+.selbox {
+margin: 8px 0;
+}
+select {
+width: 180px;
+height: 30px;
+border: 1px solid #ddd;
+}
+
+.bottom > div {  
+    display: flex; /* 使按钮和选择框水平排列 */  
+    margin-bottom: 10px; /* 为每个子 div 添加一些间距 */  
+}  
+  
+.bottom > div:last-child {  
+    margin-bottom: 0; /* 移除最后一个子 div 的间距 */  
+}  
+  
+.bottom button {  
+    margin-right: 10px; /* 为按钮之间添加间距 */  
+}  
+</style>
+<title>地图展示</title>
+</head>
+<body>
+    <div class="all">
+    <div class="top">
+        <div id='result'>点击展示详细的地址：
+            <div id='result_l'></div>
+        </div>
+        
+        <div style="position: absolute; top: 10px; right: 10px; z-index: 100;">    
+            <input type="radio" id="normalMap" name="mapType" value="BMAP_NORMAL_MAP" checked>    
+            <label for="normalMap">标准地图</label>    
+            <input type="radio" id="earthMap" name="mapType" value="BMAP_EARTH_MAP">    
+            <label for="earthMap">地球模式</label>    
+            <input type="radio" id="satelliteMap" name="mapType" value="BMAP_SATELLITE_MAP">    
+            <label for="satelliteMap">普通卫星地图</label>    
+        </div>  
+            <p>深圳莲花山公园 邓小平雕像</p>
+    </div>
+    <div class="center"><div id="allmap"></div></div>
+    <div class="bottom">
+        <div>
+        <button id="button1">开始动画</button>
+        <button id="button2">显示标注</button>
+        </div>
+        <div class = "info">
+            <div class="selbox">
+            <span>选择省份</span>
+            <select name="sel-list" id="prolist" onchange="changeProvince(this)">
+            <option value="-1">选择省份</option>
+            </select>
+            </div>
+            <div class="selbox">
+            <span>选择层级</span>
+            <select name="sel-list" onchange="changeDepth(this)">
+            <option value="0">省级行政区-0</option>
+            <option selected value="1">市级行政区-1</option>
+            <option value="2">区/县级行政区-2</option>
+            </select>
+        </div>
+    </div>
+</div>
+<!-- 地图类型选择 -->  
+ 
+</body>
+</html>
+<script type="text/javascript">
+// GL 版命名空间为 BMapGL
+// 按住鼠标右键，修改倾斜角和角度
+var map = new BMapGL.Map("allmap"); // 创建 Map 实例
+// map.centerAndZoom(new BMapGL.Point(113.982958,23.069513), 15); // 初始化地图, 设置中心点坐标和地图级别
+var point = new BMapGL.Point(114.06603712727107,22.558641062250093); // 定义点  
+map.centerAndZoom(point, 15); // 初始化地图, 设置中心点坐标和地图级别  
+map.enableScrollWheelZoom(true); //开启鼠标滚轮缩放
+//通过样式 ID 调用个性化地图样式
+map.setMapStyleV2({
+    styleId:'07a30207a4b5d9377d65f376b44d43b4'
+});
+
+
+
+//地图类型常量：
+//1.标准地图：BMAP_NORMAL_MAP
+//2.地球模式：BMAP_EARTH_MAP
+//3.普通卫星地图：BMAP_SATELLITE_MAP
+// map.setMapType(BMAP_EARTH_MAP);
+// 地图类型选择  
+            document.querySelectorAll('input[name="mapType"]').forEach(function(radio) {    
+                radio.addEventListener('change', function() {    
+                    var mapType = this.value;    
+                    switch (mapType) {    
+                        case 'BMAP_NORMAL_MAP':    
+                            map.setMapType(BMAP_NORMAL_MAP);    
+                            break;    
+                        case 'BMAP_EARTH_MAP':    
+                            map.setMapType(BMAP_EARTH_MAP);    
+                            break;    
+                        case 'BMAP_SATELLITE_MAP':    
+                            map.setMapType(BMAP_SATELLITE_MAP);    
+                            break;    
+                    }    
+                });    
+            });  
+
+
+
+// 3D视角
+map.setHeading(64.5);//设置地图旋转角度
+map.setTilt(73);//设置地图倾斜角度
+
+
+//控件添加
+var scaleCtrl = new BMapGL.ScaleControl(); // 添加比例尺控件,左下方
+map.addControl(scaleCtrl);
+var zoomCtrl = new BMapGL.ZoomControl(); // 添加缩放控件，右下方
+map.addControl(zoomCtrl);
+var cityCtrl=new BMapGL.CityListControl();//添加城市列表组件，左上方
+map.addControl(cityCtrl);
+var LocationCtrl=new BMapGL.LocationControl();//添加获取定位组件，左下方
+map.addControl(LocationCtrl);
+// 平移缩放地图控件，左下角 
+//调整平移缩放地图控件外观
+var navigationCtrl = new BMapGL.NavigationControl({  
+    // 控件类型，但在较新的API版本中可能不支持直接设置大小 
+    // type:BMAP_NAVIGATION_CONTROL_LARGE, 
+    // 这里我们仅设置锚点和偏移量  
+    anchor: BMapGL.ANCHOR_TOP_RIGHT, // 控件锚点位置  
+    offset: new BMapGL.Size(60, 450)  // 控件相对于锚点的偏移量  
+});  
+map.addControl(navigationCtrl); // 将控件添加到地图上
+
+//控件位置偏移量
+// var opts={
+//     offset:new BMapGL.Size(200,100)
+// }
+//添加控件
+// map.addControl(new BMapGL.ScaleControl(opts));
+//map.removeControl(new BMapGL.ScaleControl(opts));
+
+// 给地图添加右键菜单  
+var menu = new BMapGL.ContextMenu();  
+  
+  // 菜单项数组  
+  var txtMenuItem = [  
+      {  
+          text: '放大一级', // 菜单项文本  
+          callback: function () {  
+              map.zoomIn(); // 放大地图  
+          }  
+      },  
+      {  
+          text: '缩小一级', // 菜单项文本  
+          callback: function () {  
+              map.zoomOut(); // 缩小地图  
+          }  
+      }  
+  ];  
+
+  // 遍历菜单项数组，为每个菜单项添加到右键菜单中  
+  for (var i = 0; i < txtMenuItem.length; i++) {  
+      menu.addItem(new BMapGL.MenuItem(txtMenuItem[i].text, txtMenuItem[i].callback, 100 + i)); // 100+i是菜单项的索引或ID，可以根据需要调整  
+  }  
+
+  // 将右键菜单添加到地图上  
+  map.addContextMenu(menu);  
+
+
+/////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+// 百度地图 API 功能
+// var map = new BMapGL.Map("allmap");
+// var point = new BMapGL.Point(116.404, 39.925);
+// map.centerAndZoom(point, 15);
+var marker = new BMapGL.Marker(point); // 创建标注  
+map.addOverlay(marker); // 将标注添加到地图中  
+  
+var opts = {  
+    width: 200, // 信息窗口宽度  
+    height: 100, // 信息窗口高度  
+    title: "莲花山公园", // 信息窗口标题  
+    message: "邓小平雕像"
+};  
+  
+var infoWindow = new BMapGL.InfoWindow("地址：深圳市 福田区 邓小平雕像", opts); // 创建信息窗口对象  
+var Bottom2 = document.getElementById('button2');  
+var isInfoWindowVisible = false; // 添加一个状态变量来跟踪信息窗口是否可见  
+  
+Bottom2.addEventListener("click", function() {  
+    if (isInfoWindowVisible) {  
+        // 如果信息窗口已经打开，则关闭它  
+        map.closeInfoWindow();  
+        isInfoWindowVisible = false; // 更新状态变量  
+    } else {  
+        // 如果信息窗口未打开，则打开它  
+        map.openInfoWindow(infoWindow, point);  
+        isInfoWindowVisible = true; // 更新状态变量  
+    }  
+});
+
+
+////////////////////////////////////////////////////////////////////////////
+//正地址解析
+//创建地址解析器实例
+// var myGeo = new BMapGL.Geocoder();
+// // 将地址解析结果显示在地图上，并调整地图视野
+// myGeo.getPoint('北京市海淀区上地 10 街', function(point){
+// if(point){
+// map.centerAndZoom(point, 16);
+// map.addOverlay(new BMapGL.Marker(point, {title: '北京市海淀区上地 10 街'}))
+// }else{
+// alert('您选择的地址没有解析到结果！');
+// }
+// }, '北京市')
+
+//点击事件            
+// map.addEventListener('click', function (e) {  
+//     alert('点击像素坐标：' + e.point.lng + ',' + e.point.lat);  
+// }); 
+
+//逆地址解析
+var geoc = new BMapGL.Geocoder();
+//
+map.addEventListener('click', function(e){
+    alert('点击位置经纬度：' + e.latlng.lng + ',' + e.latlng.lat);  
+    
+//清除地图上所有的覆盖物
+map.clearOverlays();
+console.log(e);
+var pt = e.latlng;
+var marker = new BMapGL.Marker(new BMapGL.Point(pt.lng, pt.lat));
+map.addOverlay(marker);
+// 使用逆地理编码获取地址信息  
+geoc.getLocation(pt, function(rs){
+var addComp = rs.addressComponents;
+$('#result_l').text(addComp.province + ", " + addComp.city + ", " + addComp.district + ", " + addComp.street + ", " + addComp.streetNumber);
+})
+})
+////////////////////////////////////////////////////////////////////////////
+//动画
+
+// var bmap, pl, trackAni;  
+//   // 初始化地图和折线（这里只是示例，你需要根据你的需求来设置）  
+//   function initMapAndPolyline() {  
+//       // 初始化地图  
+//     //   bmap = new BMapGL.Map("allmap");  
+//     //   var point = new BMapGL.Point(116.404, 39.915); // 示例中心点，你可以替换为你需要的  
+//     //   bmap.centerAndZoom(point, 15);  
+//     bmap = new BMapGL.Map("allmap"); // 创建 Map 实例
+// bmap.centerAndZoom(new BMapGL.Point(113.982958,23.069513), 15); // 初始化地图, 设置中心点坐标和地图级别
+// bmap.enableScrollWheelZoom(true); //开启鼠标滚轮缩放
+// //通过样式 ID 调用个性化地图样式
+// bmap.setMapStyleV2({
+//     styleId:'07a30207a4b5d9377d65f376b44d43b4'
+// });
+      // 初始化折线  
+      var path = [  
+          // ... 你的坐标点数组 ...  
+          {
+'lng': 114.0563439402084,
+'lat': 22.554031996501237
+}, {
+'lng': 114.07414318693415,
+'lat': 22.554220796191682
+}, {
+'lng': 114.0739902070157,
+'lat': 22.565376356842673
+}, {
+'lng': 114.06089172860698,
+'lat': 22.564496471282347
+}, {
+'lng': 114.05590059737435,
+'lat': 22.5598205968841
+}, {
+'lng': 114.0563439402084,
+'lat': 22.554031996501237
+}, {
+'lng': 114.07414318693415,
+'lat': 22.554220796191682
+}
+      ];  
+      pl = new BMapGL.Polyline(getPathPoints(path)); // 使用getPathPoints函数将坐标数组转换为BMapGL.Point数组  
+
+      // 注意：这里不再使用setTimeout来自动调用start函数  
+    
+
+  // 将坐标数组转换为BMapGL.Point数组  
+  function getPathPoints(path) {  
+      var points = [];  
+      for (var i = 0; i < path.length; i++) {  
+          points.push(new BMapGL.Point(path[i].lng, path[i].lat));  
+      }  
+      return points;  
+  }  
+
+  // 开始动画的函数  
+  function start() {  
+      // 确保bmap和pl已经被初始化  
+      if (!map || !pl) {  
+          console.error('地图或折线未初始化！');  
+          return;  
+      }  
+
+      // 假设BMapGLLib.TrackAnimation是可用的（注意：这可能不是百度地图API的标准组件）  
+      trackAni = new BMapGLLib.TrackAnimation(map, pl, {  
+          overallView: true,  
+          tilt: 30,  
+          duration: 20000,  
+          delay: 300  
+      });  
+      trackAni.start();  
+  }  
+
+  document.getElementById('button1').addEventListener('click', function() {  
+    start(); // 调用start函数来启动动画  
+});  
+  
+//   // 当DOM加载完成后初始化地图、折线和事件监听器  
+//   document.addEventListener('DOMContentLoaded', function() {  
+//       initMapAndPolyline(); // 调用你的初始化函数  
+//       document.getElementById('startButton').addEventListener('click', start); // 添加事件监听器  
+//   });  
+////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+//简易行政区划图层
+var zoomCtrl = new BMapGL.ZoomControl();
+map.addControl(zoomCtrl);
+var proname = '广东省';
+var prokind = 1;
+var dist = null;
+// --- 添加行政区 ---
+function addDis(proname, prokind) {
+map.removeDistrictLayer(dist);
+dist = new BMapGL.DistrictLayer({
+name: '(' + proname + ')', kind: prokind, fillColor: '#618bf8', strokeColor: '#daeafa', viewport: true
+});
+map.addDistrictLayer(dist);
+}
+addDis(proname, prokind);
+// --- 切换行政区与层级 ---
+function changeProvince(ele) {
+proname = ele.value;
+addDis(ele.value, prokind);
+}
+function changeDepth(ele) {
+prokind = ele.value;
+addDis(proname, ele.value);
+}
+</script>
+<script>
+var optarr = provinces.map(function (item) {
+return '<option ' + (item.name === proname ? 'selected' : '') + ' value="' +
+item.name + '">' + item.name + '</option>';
+});
+document.getElementById('prolist').innerHTML = optarr.join('')
+
+
+
+
+
+
+
+
+</script>
+
+
+
+
